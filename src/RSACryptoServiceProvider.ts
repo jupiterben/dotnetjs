@@ -1,19 +1,21 @@
-import * as System from "./System";
-
 class RSAParameters {
-  Exponent: number[] = [];
-  Modulus: number[] = [];
+  Exponent: number[] | null = [];
+  Modulus: number[] | null = [];
   // Non serialized parameters.
-  D: number[] = [];
-  DP: number[] = [];
-  DQ: number[] = [];
-  InverseQ: number[] = [];
-  P: number[] = [];
-  Q: number[] = [];
+  D: number[] | null = [];
+  DP: number[] | null = [];
+  DQ: number[] | null = [];
+  InverseQ: number[] | null = [];
+  P: number[] | null = [];
+  Q: number[] | null = [];
   Clone(includePrivateParameters: boolean): RSAParameters {
     var parameters = new RSAParameters();
-    System.Array.Copy(this.Exponent, parameters.Exponent, this.Exponent.length);
-    System.Array.Copy(this.Modulus, parameters.Modulus, this.Modulus.length);
+    System.Array.Copy(
+      this.Exponent,
+      parameters.Exponent,
+      this.Exponent!.length
+    );
+    System.Array.Copy(this.Modulus, parameters.Modulus, this.Modulus!.length);
     if (includePrivateParameters) {
       if (this.D) System.Array.Copy(this.D, parameters.D, this.D.length);
       if (this.DP) System.Array.Copy(this.DP, parameters.DP, this.DP.length);
@@ -58,7 +60,7 @@ export class RSACryptoServiceProvider {
   ImportParameters(parameters: RSAParameters) {
     this.rsaParams = parameters.Clone(true);
     this.rsaParamsBi = null;
-    this.KeySize = this.rsaParams!.Modulus.length * 8;
+    this.KeySize = this.rsaParams!.Modulus!.length * 8;
     this.BlockSize = this.KeySize;
     this.FeedbackSize = this.KeySize;
   }
@@ -76,5 +78,16 @@ export class RSACryptoServiceProvider {
     parameters.P = getXmlValue(xmlString, "P");
     parameters.Q = getXmlValue(xmlString, "Q");
     this.ImportParameters(parameters);
+  }
+}
+
+export namespace System {
+  export namespace Convert {}
+  export namespace Array {
+    export function Copy<T>(
+      src: Array<T> | null,
+      dest: Array<T> | null,
+      length: number
+    ) {}
   }
 }

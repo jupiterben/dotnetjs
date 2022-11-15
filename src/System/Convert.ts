@@ -3,24 +3,84 @@ class Base64Array {
   /// Array which makes base64 encoding and decoding faster.
   /// </ summary>
   // Declare string of available chars inside base64.
-  this.S = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-  this.CA = [];
-  this.IA = [];
+  S = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+  CA: string[] = [];
+  IA: number[] = [];
   //---------------------------------------------------------
   // INIT: Class
   //---------------------------------------------------------
   constructor() {
-    var c = "";
     for (var i = 0; i < this.S.length; i++) {
-      c = this.S.charAt(i);
+      let c = this.S.charAt(i);
       this.CA[i] = c;
       this.IA[c] = i;
     }
-  };
-  this.InitializeClass();
+  }
 }
 
-export function FromBase64String(s, fix) {
+enum Base64FormattingOptions {
+  None = 0,
+  InsertLineBreaks = 1,
+}
+
+function ToBase64String(b: ByteArray, options?: any): string {
+  /// <summary>
+  /// Converts the value of an array of 8-bit unsigned integers to its equivalent
+  /// System.String representation encoded with base 64 digits.
+  /// </summary>
+  /// <param type="byte[]" name="b">An array of 8-bit unsigned integers.</param>
+  /// <param type="int" name="options">Specify: 1 - to insert a line break every 76 characters, 0 - to not insert line breaks.</param>
+  /// <returns type="string">
+  /// The System.String representation, in base 64, of the contents of inArray.
+  /// </returns>
+  /// <remarks>
+  /// A very fast and memory efficient class to encode and decode to and from BASE64
+  /// in full accordance with RFC 2045. Based on http://migbase64.sourceforge.net/
+  /// Converted to JavaScript by Evaldas Jocys [evaldas@jocys.com], https://www.jocys.com
+  /// </remarks>
+  var insertBreaks =
+    options === Base64FormattingOptions.InsertLineBreaks || options === true;
+  var B64 = new Base64Array();
+  // Check special case
+  var bLen = b ? b.length : 0;
+  if (bLen === 0) return new Array(0);
+  // Length of even 24-bits.
+  var eLen = Math.floor(bLen / 3) * 3;
+  // Returned character count.
+  var cCnt = ((bLen - 1) / 3 + 1) << 2;
+  var dLen = cCnt + (insertBreaks ? ((cCnt - 1) / 76) << 1 : 0); // Length of returned array
+  var dArr = new Array(dLen);
+  // Encode even 24-bits.
+  for (var s = 0, d = 0, cc = 0; s < eLen; ) {
+    // Copy next three bytes into lower 24 bits of int, paying attension to sign.
+    var i = ((b[s++] & 0xff) << 16) | ((b[s++] & 0xff) << 8) | (b[s++] & 0xff);
+    // Encode the int into four chars.
+    dArr[d++] = B64.CA[(i >>> 18) & 0x3f];
+    dArr[d++] = B64.CA[(i >>> 12) & 0x3f];
+    dArr[d++] = B64.CA[(i >>> 6) & 0x3f];
+    dArr[d++] = B64.CA[i & 0x3f];
+    // Add optional line separator as specified in RFC 2045.
+    if (insertBreaks && ++cc === 19 && d < dLen - 2) {
+      dArr[d++] = "\r";
+      dArr[d++] = "\n";
+      cc = 0;
+    }
+  }
+  // Pad and encode last bits if source isn't even 24 bits.
+  var left = bLen - eLen; // 0 - 2.
+  if (left > 0) {
+    // Prepare the int.
+    var j =
+      ((b[eLen] & 0xff) << 10) | (left === 2 ? (b[bLen - 1] & 0xff) << 2 : 0);
+    // Set last four chars.
+    dArr[dLen - 4] = B64.CA[j >> 12];
+    dArr[dLen - 3] = B64.CA[(j >>> 6) & 0x3f];
+    dArr[dLen - 2] = left === 2 ? B64.CA[j & 0x3f] : "=";
+    dArr[dLen - 1] = "=";
+  }
+  return dArr.join("");
+}
+export function FromBase64String(s: string, fix: boolean = false) {
   /// <summary>
   /// Converts the specified System.String, which encodes binary data as base 64
   /// digits, to an equivalent 8-bit unsigned integer array.
@@ -35,7 +95,7 @@ export function FromBase64String(s, fix) {
   /// in full accordance with RFC 2045. Based on http://migbase64.sourceforge.net/
   /// Converted to JavaScript by Evaldas Jocys [evaldas@jocys.com], https://www.jocys.com
   /// </remarks>
-  var B64 = new System.Convert.Base64Array();
+  var B64 = new Base64Array();
   // Check special case
   if (fix) {
     // Remove illegal chars

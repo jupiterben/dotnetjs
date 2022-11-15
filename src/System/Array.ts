@@ -1,1 +1,5 @@
-export function Copy<T>(src: Array<T>, dest: Array<T>, length: number) {}
+export function Copy<T>(
+  src: Array<T> | null,
+  dest: Array<T> | null,
+  length: number
+) {}
